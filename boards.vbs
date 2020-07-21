@@ -7,9 +7,10 @@ Sub GetKeywordDataSetRecords(filterValue, context, results)
     Set committees = xml.selectNodes("committees/committee")
 
     For Each committee in committees
-        results.BeginRow()
-        results.AddData "keyvaluechar", committee.selectSingleNode("name").text
-        results.EndRow()
+        if InStr(committee.selectSingleNode("name").text, filterValue) > 0 Then
+            results.BeginRow()
+            results.AddData "keyvaluechar", committee.selectSingleNode("name").text
+            results.EndRow()
+        End If
     Next
 End Sub
-
