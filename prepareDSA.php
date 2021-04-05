@@ -21,7 +21,7 @@ $FORMAT_PDF  = 16;
 $DOCTYPE_DSA = 139;
 $DOCTYPE_DSO = 138;
 
-$valid_format = '/^[A-Z]{1,3}-\d{1,3}-\d{1,2}$/';
+$valid_format = '/^[A-Z\/]+-\d{1,3}-\d{1,2}$/';
 
 $c = 0;
 while (($row = fgetcsv($csv, 1024, ',', '"')) !== false) {
