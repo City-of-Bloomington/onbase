@@ -20,7 +20,7 @@ $FORMAT_PDF  = 16;
 $DOCTYPE_DSA = 139;
 $DOCTYPE_DSO = 138;
 
-$case_num_format   = '/^[A-Z]{1,3}-\d{1,3}-\d{1,2}$/';
+$case_num_format   = '/^[A-Z\/]+-\d{1,3}-\d{1,2}$/';
 $permit_num_format = '/^[A-Z]\d{2}-\d{3,4}$/';
 
 $c = 0;
