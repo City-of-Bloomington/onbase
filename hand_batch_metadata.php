@@ -22,6 +22,10 @@ $batches= ['2024-08-05', '2023-06-30'];
 foreach ($batches as $batch) {
     $files = "../$batch";
     $csv   = fopen(SITE_HOME."/$batch.csv", 'w');
+
+    $images = SITE_HOME."/$batch";
+    if (!is_dir($images)) { mkdir($images); }
+
     foreach (glob("$files/*.pdf") as $f) {
         $d          = explode('_', basename($f));
         $address    = str_replace('.', '', $d[1]);
@@ -36,10 +40,19 @@ foreach ($batches as $batch) {
             if ($res) {
                 array_push($data, $res[0]['ADDRESSLINE1']);
                 array_push($data, $res[0]['PMPERMITID']);
+                if (!is_dir("$images/$permit_num")) { mkdir("$images/$permit_num"); }
+
+                $manifest = fopen("$images/$permit_num/$permit_num.csv", 'w');
+                exec("pdfimages -png \"$f\" $images/$permit_num/$permit_num");
+                foreach (glob("$images/$permit_num/*.png") as $i) {
+                    fputcsv($manifest, [basename($f), basename($i)]);
+                }
+                fclose($manifest);
             }
         }
         fputcsv($csv, $data);
     }
+    fclose($csv);
 }
 
 function getConnection(array $config): \PDO
