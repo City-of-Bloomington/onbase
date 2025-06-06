@@ -7,8 +7,8 @@ declare (strict_types=1);
 
 if (!defined('SITE_HOME')) { define('SITE_HOME', realpath(__DIR__.'/../../data')); }
 $config    = json_decode(file_get_contents(SITE_HOME.'/config.json'), true);
-$originals = realpath(SITE_HOME.'/../');
-$output    = SITE_HOME.'/HAND';
+$originals = '/srv/sites/hand/originals';
+$output    = '/srv/sites/hand/split';
 if (!is_dir($output)) { mkdir($output); }
 
 $pdo   = getConnection($config['db']['epl']);
@@ -21,21 +21,35 @@ $sql   = "select p.PMPERMITID,
           where p.permitnumber=?";
 $query = $pdo->prepare($sql);
 
-$batches   = ['2024-08-05', '2023-06-30'];
-foreach ($batches as $batch) {
+// Column numbers from the original metadata
+define('ITEMNUM',    0);
+define('ITEMNAME',   1);
+define('ITEMDATE',   2);
+define('DATESTORED', 3);
+define('FILEPATH',   4);
+define('ADDRESS',    5);
+define('FILE_NUM',   6);
+define('OPEX_BATCH', 7);
+define('SET',        8);
+define('BOX',        9);
+
+$DOCPOP = 'https://documents.bloomington.in.gov/AppNetWeb/docpop/docpop.aspx?docid=';
+
+foreach (glob("$originals/*.csv") as $b) {
+    $batch = substr(basename($b), 0, -4);
+
     $files  = "$originals/$batch";
-    $csv    = fopen("$output/$batch.csv", 'w');
+    $incsv  = fopen($b, 'r');
+    $outcsv = fopen("$output/$batch.csv", 'w');
     $errors = fopen("$output/$batch-errors.csv", 'w');
     $images = "$output/$batch";
 
-    foreach (glob("$files/*.pdf") as $f) {
-        $d          = explode('_', basename($f));
-        $address    = str_replace('.', '', $d[1]);
-        $permit_num = is_numeric($d[2]) ? "rentpro_$d[2]" : "RENT$d[2]";
+    while ($onbase = fgetcsv($incsv)) {
+        $address    = $onbase[ADDRESS];
+        $permit_num = is_numeric($onbase[FILE_NUM]) ? 'rentpro_'.$onbase[FILE_NUM] : 'RENT'.$onbase[FILE_NUM];
         echo "$batch/$address $permit_num\n";
 
-        $data = [basename($f), $permit_num, $address];
-
+        $data = [$onbase[ITEMNAME], $address, $permit_num];
         if ($permit_num) {
             $query->execute([$permit_num]);
             $res = $query->fetchAll(\PDO::FETCH_ASSOC);
@@ -43,21 +57,16 @@ foreach ($batches as $batch) {
                 array_push($data, $res[0]['ADDRESSLINE1']);
                 array_push($data, $res[0]['PMPERMITID']);
 
-                // if (!is_dir("$images/$permit_num")) { mkdir("$images/$permit_num"); }
-                //
-                // $manifest = fopen("$images/$permit_num/$permit_num.csv", 'w');
-                // exec("pdfimages -png \"$f\" $images/$permit_num/$permit_num");
-                // foreach (glob("$images/$permit_num/*.png") as $i) {
-                //     fputcsv($manifest, [basename($f), basename($i)]);
-                // }
-                // fclose($manifest);
-                fputcsv($csv, $data);
+                fputcsv($outcsv, $data);
                 continue;
             }
         }
+        // Add the OnBase URL to this document to the error report
+        array_push($data, $DOCPOP.$onbase[ITEMNUM]);
         fputcsv($errors, $data);
     }
-    fclose($csv);
+
+    fclose($outcsv);
     fclose($errors);
 }
 

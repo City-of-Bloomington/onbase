@@ -11,7 +11,7 @@ define('HAND', 109);
 define('MOUNT', SITE_HOME.'/cob-obapp1');
 
 $config    = json_decode(file_get_contents(SITE_HOME.'/config.json'), true);
-$export    = SITE_HOME.'/export';
+$export    = '/srv/sites/hand/originals';
 $pdo       = getConnection($config['db']['onbase']);
 
 $sql = "select distinct cast(i.itemdate as date) as batch_date
