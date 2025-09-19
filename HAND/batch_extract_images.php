@@ -13,6 +13,7 @@ if (!is_dir($output)) { mkdir($output); }
 
 // Column numbers from batch metadata
 define('FILENAME',   0);
+define('ITEMNAME',   1);
 define('PERMIT_NUM', 2);
 define('ADDRESS',    3);
 define('PERMIT_ID',  4);

@@ -14,10 +14,13 @@ if (!is_dir($output)) { mkdir($output); }
 $pdo   = getConnection($config['db']['epl']);
 $sql   = "select p.PMPERMITID,
                  p.PERMITNUMBER,
-                 a.ADDRESSLINE1
-          from pmpermit p
-          join PMPERMITADDRESS pa on pa.PMPERMITID=p.PMPERMITID and pa.MAIN=1
-          join MAILINGADDRESS   a on pa.MAILINGADDRESSID=a.MAILINGADDRESSID
+                 a.ADDRESSLINE1,
+                pr.parcelnumber
+          from pmpermit             p
+          join PMPERMITADDRESS     pa on pa.PMPERMITID=p.PMPERMITID and pa.MAIN=1
+          join MAILINGADDRESS       a on pa.MAILINGADDRESSID=a.MAILINGADDRESSID
+          left join pmpermitparcel pp on pp.PMPERMITID=p.PMPERMITID and pp.MAIN=1
+          left join PARCEL         pr on pp.PARCELID=pr.PARCELID
           where p.permitnumber=?";
 $query = $pdo->prepare($sql);
 
@@ -44,6 +47,8 @@ foreach (glob("$originals/*.csv") as $b) {
     $errors = fopen("$output/$batch-errors.csv", 'w');
     $images = "$output/$batch";
 
+    fputcsv($outcsv, ['itemname', 'junk', 'case_num', 'address', 'parcel', 'case_type', 'case_id', 'url']);
+
     while ($onbase = fgetcsv($incsv)) {
         $address    = $onbase[ADDRESS];
         $permit_num = is_numeric($onbase[FILE_NUM]) ? 'rentpro_'.$onbase[FILE_NUM] : 'RENT'.$onbase[FILE_NUM];
@@ -55,13 +60,15 @@ foreach (glob("$originals/*.csv") as $b) {
             $res = $query->fetchAll(\PDO::FETCH_ASSOC);
             if ($res) {
                 array_push($data, $res[0]['ADDRESSLINE1']);
+                array_push($data, $res[0]['parcelnumber']);
+                array_push($data, 'permit');
                 array_push($data, $res[0]['PMPERMITID']);
+                array_push($data, $DOCPOP.$onbase[ITEMNUM]);
 
                 fputcsv($outcsv, $data);
                 continue;
             }
         }
-        // Add the OnBase URL to this document to the error report
         array_push($data, $DOCPOP.$onbase[ITEMNUM]);
         fputcsv($errors, $data);
     }
